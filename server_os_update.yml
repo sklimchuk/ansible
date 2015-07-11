@@ -1,0 +1,39 @@
+---
+- hosts: '{{ target }}'
+  sudo: True
+  user: paste_your_user_name_here
+  tasks:
+  - command: apt-get update
+    when: ansible_os_family == "Debian"
+    register: apt1
+  - debug: var=apt1.stdout_lines
+
+  - command: monit summary
+    register: monit
+    ignore_errors: True
+
+  # monit not stopping when -->  - service: name=monit state=stopped
+  - command: service monit stop
+    when: monit|success
+
+  - command: apt-get upgrade -y
+    when: ansible_os_family == "Debian"
+    register: apt2
+  - debug: var=apt2.stdout_lines
+
+  - command: yum update -y
+    when: ansible_os_family == "RedHat"
+    register: yum1
+  - debug: var=yum1.stdout_lines
+    when: ansible_os_family == "RedHat"
+
+  - service: name=monit state=started
+    when: monit|success
+
+  - pause: seconds=5
+
+  - command: monit summary
+    when: monit|success
+  - debug: var=monit.stdout_lines
+    when: monit|success
+
